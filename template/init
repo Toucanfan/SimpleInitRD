@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# Mount filesystems
+mount devfs -t devtmpfs /dev
+mount sysfs -t sysfs /sys
+mount proc -t proc /proc
+
+exec /bin/init
