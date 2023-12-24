@@ -1,8 +1,35 @@
 #!/bin/sh
 
-# Mount filesystems
+# Source settings file
+. /etc/settings.sh
+. /etc/functions.sh
+
+
+# Mount API filesystems
 mount devfs -t devtmpfs /dev
+log "Entering initrd"
+
 mount sysfs -t sysfs /sys
 mount proc -t proc /proc
+mount none -t tmpfs /run
 
-exec /bin/init
+# Run hooks
+for hook in $HOOKS; do
+    log "Running hook $hook."
+    /bin/sh /etc/hooks.d/$hook
+done
+
+if [ "$(get_cmdline_opt rd.shell)" = "1" ]; then
+    /bin/sh
+fi;
+
+
+# Kill all user processes except for PID 1
+pids=$(ps | grep -v ]$ | awk '{print $1}' | tail -n +3)
+for pid in $pids; do
+    kill $pid 2>/dev/null
+done
+
+log "Exiting initrd"
+
+exec switch_root /newroot /bin/systemd

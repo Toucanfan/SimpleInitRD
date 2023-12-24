@@ -1,0 +1,9 @@
+#!/bin/sh
+
+. /etc/settings.sh
+. /etc/functions.sh
+
+for mod in $BASE_MODULES; do
+    log "Loading module '$mod'."
+    modprobe $mod
+done

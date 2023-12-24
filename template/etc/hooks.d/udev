@@ -1,0 +1,9 @@
+#!/bin/sh
+
+/bin/udevd -d
+pid=$?
+
+echo $pid > /run/udevd.pid
+
+udevadm trigger
+udevadm settle

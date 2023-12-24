@@ -1,0 +1,10 @@
+#!/bin/sh
+
+. /etc/settings.sh
+. /etc/functions.sh
+
+# Mount root filesystem
+mkdir /newroot
+log "Mounting $ROOTFS_DEV as rootfs"
+mount $ROOTFS_DEV /newroot
+
