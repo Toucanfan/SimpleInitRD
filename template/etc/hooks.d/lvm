@@ -1,0 +1,10 @@
+#!/bin/sh
+
+. /etc/settings.sh
+. /etc/functions.sh
+
+# Activate LVM volumes
+modprobe dm_mod
+
+lvm lvscan
+lvm vgchange -ay --noudevsync
