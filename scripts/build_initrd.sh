@@ -8,18 +8,31 @@ kernel_ver=$(uname -r)
 moddir="/lib/modules/$kernel_ver"
 config_dir=/etc/simpleinitrd
 template_dir=$config_dir/template
-
+invoke_name=$(basename $0)
 
 usage() {
     echo "Usage: $(basename $0) [-k KERNEL_VER] [-c CONFIG_DIR] [-t TEMPLATE_DIR] [-b BOOT_DIR]"
 }
 
+log_error() {
+    echo "$invoke_name: $1" >&2
+}
+
+exit_failure() {
+    log_error "Fatal error ocurred, aborting..."
+    exit 1
+}
 
 # Functions
 install_bin() {
-    binary=$1
+    local binary=$(which $1)
 
-    lib_deps="$(ldd $binary | grep "=>" | awk '{print $3}')"
+    if [ ! -f "$binary" ]; then
+        log_error "Binary '$1' doesn't exist!"
+        exit_failure
+    fi
+
+    local lib_deps="$(ldd $binary | grep "=>" | awk '{print $3}')"
 
     install -t $initrd_dir/bin $binary
     install -t $initrd_dir/lib $lib_deps
@@ -36,9 +49,15 @@ install_module() {
 }
 
 install_symlink() {
-    link=$1
-    symlink=$(basename $(which $link))
-    binary=$(basename $(readlink $(which $link)))
+    local link=$(which $1)
+
+    if [ ! -f "$link" ]; then
+        log_error "Link '$1' doesn't exist!"
+        exit_failure
+    fi
+
+    local symlink=$(basename $link)
+    local binary=$(basename $(readlink $(which $link)))
     ln -s /bin/$binary $initrd_dir/bin/$symlink
 }
 
@@ -66,6 +85,7 @@ while getopts ":k:c:t:b:" opt; do
             ;;
         ?|:)
             usage
+            exit 1
             ;;
     esac
 done
@@ -106,7 +126,7 @@ cp $config_dir/settings.sh $initrd_dir/etc/
 
 # Install desired binaries and dependencies
 for bin in $BINARIES; do
-    install_bin $(which $bin)
+    install_bin $bin
 done
 ldconfig -r $initrd_dir
 
@@ -130,5 +150,6 @@ pushd $initrd_dir
 find . | cpio -o -H newc > ../$initrd_out
 cd ..
 gzip $initrd_out
+rm -f $boot_dir/initrd.img-$kernel_ver
 cp $initrd_out.gz $boot_dir/initrd.img-$kernel_ver
 popd
