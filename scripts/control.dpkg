@@ -1,0 +1,9 @@
+Package: simpleinitrd
+Version: 0.1
+Section: base
+Priority: optional
+Provides: linux-initramfs-tool
+Conflicts: linux-initramfs-tool
+Architecture: all
+Maintainer: Troels Folke <troelsmf@gmail.com>
+Description: Simple InitRD generator

@@ -1,6 +1,7 @@
-.PHONY: clean all initrd.img qemu install
+.PHONY: clean all initrd.img qemu install deb
 
-INSTALL_ROOT ?= 
+INSTALL_ROOT ?= /
+PREFIX := usr
 
 all: initrd.img
 
@@ -15,15 +16,30 @@ _build:
 qemu: initrd.img
 	scripts/start_qemu.sh
 
-install:
-	@echo "Installing into $(INSTALL_ROOT)/..."
-	mkdir -p $(INSTALL_ROOT)/etc/simpleinitrd
-	install -m 644 settings.sh $(INSTALL_ROOT)/etc/simpleinitrd
-	install -m 644 build_settings.sh $(INSTALL_ROOT)/etc/simpleinitrd
-	install -m 655 scripts/build_initrd.sh $(INSTALL_ROOT)/usr/local/sbin
-	install -m 655 -T scripts/kernel/postinst.sh $(INSTALL_ROOT)/etc/kernel/postinst.d/SimpleInitRD
-	install -m 655 -T scripts/kernel/postrm.sh $(INSTALL_ROOT)/etc/kernel/postrm.d/SimpleInitRD
-	cp -r template $(INSTALL_ROOT)/etc/simpleinitrd/
+define INSTALL_TO
+mkdir -p $(1)/etc/simpleinitrd
+install -m 644 settings.sh $(1)/etc/simpleinitrd
+install -m 644 build_settings.sh $(1)/etc/simpleinitrd
+install -m 655 scripts/build_initrd.sh $(1)/$(2)/sbin
+install -m 655 -T scripts/kernel/postinst.sh $(1)/etc/kernel/postinst.d/SimpleInitRD
+install -m 655 -T scripts/kernel/postrm.sh $(1)/etc/kernel/postrm.d/SimpleInitRD
+cp -r template $(1)/etc/simpleinitrd/
+endef
 
+install:
+	@echo "Installing into $(INSTALL_ROOT)/$(PREFIX)..."
+	$(call INSTALL_TO,$(INSTALL_ROOT),$(PREFIX))
+
+deb: _build
+	rm -rf _build/dpkg
+	mkdir -p _build/dpkg/DEBIAN
+	cp scripts/control.dpkg _build/dpkg/DEBIAN/control
+	mkdir -p _build/dpkg/etc/simpleinitrd
+	mkdir -p _build/dpkg/etc/kernel/postinst.d
+	mkdir -p _build/dpkg/etc/kernel/postrm.d
+	mkdir -p _build/dpkg/usr/sbin
+	$(call INSTALL_TO,_build/dpkg/,usr)
+	cd _build && dpkg-deb --build dpkg
+	
 clean:
 	sudo rm -rf _build initrd.img
