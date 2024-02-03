@@ -7,3 +7,4 @@ echo $pid > /run/udevd.pid
 
 udevadm trigger
 udevadm settle
+sleep 2 # Wait for slower devices to be found, e.g. USB drives

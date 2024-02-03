@@ -1,0 +1,12 @@
+#!/bin/sh
+
+. /etc/settings.sh
+. /etc/functions.sh
+
+modprobe dm_crypt
+
+if [ -n "$CRYPT_KEYFILE" ]; then
+    cryptsetup open $CRYPT_DEV -d $CRYPT_KEYFILE $CRYPT_NAME
+else
+    cryptsetup --debug open $CRYPT_DEV $CRYPT_NAME
+fi

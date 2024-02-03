@@ -1,13 +1,11 @@
 #!/bin/bash
 
+set -x
+
 build_dir=$(mktemp -d)
 boot_dir=/boot
-initrd_dir=$build_dir/rootfs
-initrd_out="initrd"
 kernel_ver=$(uname -r)
-moddir="/lib/modules/$kernel_ver"
 config_dir=/etc/simpleinitrd
-template_dir=$config_dir/template
 invoke_name=$(basename $0)
 
 usage() {
@@ -40,7 +38,7 @@ install_bin() {
 
 install_module() {
     module="$1"
-    mod_deps="$(modprobe --show-depends $module | awk '{print $2}')"
+    mod_deps="$(modprobe -S $kernel_ver --show-depends $module | awk '{print $2}')"
     mkdir -p $initrd_dir/$moddir
     for m in $mod_deps; do
         mkdir -p $initrd_dir/$(dirname $m)
@@ -69,16 +67,14 @@ if [ "$EUID" != 0 ]; then
     exit 1
 fi
 
-while getopts ":k:c:t:b:" opt; do
+while getopts ":k:c:b:" opt; do
     case $opt in
         k)
             kernel_ver=$OPTARG
+            echo "Selected kernel version is: $kernel_ver"
             ;;
         c)
             config_dir=$(realpath $OPTARG)
-            ;;
-        t)
-            template_dir=$(realpath $OPTARG)
             ;;
         b)
             boot_dir=$(realpath $OPTARG)
@@ -89,6 +85,11 @@ while getopts ":k:c:t:b:" opt; do
             ;;
     esac
 done
+
+template_dir=$config_dir/template
+initrd_dir=$build_dir/rootfs
+initrd_out="initrd"
+moddir="/lib/modules/$kernel_ver"
 
 if [ ! -d "$config_dir" ]; then
     echo "The specified configuration dir doesn't exist." >&2
@@ -109,15 +110,19 @@ fi
 source $config_dir/build_settings.sh
 
 # Create directory structure
-mkdir -p $initrd_dir/{bin,dev,etc,lib,lib64,mnt,proc,run,sbin,sys,tmp,var}
+mkdir -p $initrd_dir/{bin,dev,etc,lib,lib64,mnt,proc,run,,sys,tmp,var}
+ln -s /bin $initrd_dir/sbin
 
 # Install basics
 cp $(which busybox) $initrd_dir/bin/
 chroot $initrd_dir /bin/busybox --install -s /bin
+#cp $(which ldconfig) $initrd_dir/bin/
 cp -r $template_dir/* $initrd_dir/
 ln -r -s $initrd_dir/lib $initrd_dir/lib/x86_64-linux-gnu
 install -t $initrd_dir/lib /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
 ln -r -s $initrd_dir/lib/ld-linux-x86-64.so.2 $initrd_dir/lib64/ld-linux-x86-64.so.2
+install -t $initrd_dir/lib /lib/x86_64-linux-gnu/libgcc_s.so.1
+
 cp /usr/lib/systemd/systemd-udevd $initrd_dir/bin/udevd
 cp -r /lib/udev $initrd_dir/lib/udev
 cp -r /etc/udev $initrd_dir/etc/udev
@@ -138,6 +143,8 @@ for mod in $MODULES; do
     install_module $mod
 done
 cp $moddir/modules.* $initrd_dir/$moddir/
+cp -r $moddir/kernel/crypto $initrd_dir/$moddir/kernel/
+cp -r $moddir/kernel/arch/x86/crypto $initrd_dir/$moddir/kernel/arch/x86/
 
 # Install extra files
 for file in $FILES; do

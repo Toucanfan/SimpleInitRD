@@ -1,20 +1,21 @@
 .PHONY: clean all initrd.img qemu install deb
 
+KERNEL_VER ?= $(shell uname -r)
 INSTALL_ROOT ?= /
-PREFIX := usr
+PREFIX ?= usr
 
 all: initrd.img
 
 initrd.img: _build
 	rm -f initrd.img
-	sudo scripts/build_initrd.sh -c . -t ./template -b .
+	sudo scripts/build_initrd.sh -c . -b . -k $(KERNEL_VER)
 	mv initrd.img-* initrd.img
 
 _build:
 	mkdir _build
 
 qemu: initrd.img
-	scripts/start_qemu.sh
+	scripts/start_qemu.sh $(KERNEL_VER)
 
 define INSTALL_TO
 mkdir -p $(1)/etc/simpleinitrd

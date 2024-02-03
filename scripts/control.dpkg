@@ -4,6 +4,7 @@ Section: base
 Priority: optional
 Provides: linux-initramfs-tool
 Conflicts: linux-initramfs-tool
+Depends: lvm2, pciutils, busybox-static, cryptsetup, libgcc-s1
 Architecture: all
 Maintainer: Troels Folke <troelsmf@gmail.com>
 Description: Simple InitRD generator

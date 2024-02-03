@@ -7,3 +7,8 @@ for mod in $BASE_MODULES; do
     log "Loading module '$mod'."
     modprobe $mod
 done
+
+#for mod in $(ls /lib/modules/$(uname -r)/kernel/crypto | sed 's/\.ko//'); do
+#    log "Loading crypto module '$mod'."
+#    modprobe $mod
+#done
